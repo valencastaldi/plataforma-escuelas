@@ -1,0 +1,100 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Curso {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  alumnos   Alumno[]
+  notas     Nota[]
+  asistencias Asistencia[]
+}
+
+model Alumno {
+  id        Int      @id @default(autoincrement())
+  nombre    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cursoId   Int
+  curso     Curso    @relation(fields: [cursoId], references: [id], onDelete: Restrict)
+
+  userId    Int?     @unique
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  notas     Nota[]
+  asistencias Asistencia[]
+
+  @@index([cursoId])
+}
+
+model Nota {
+  id          Int      @id @default(autoincrement())
+  valor       Float
+  descripcion String   @default("GENERAL")
+  fecha       DateTime @default(now())
+
+  alumnoId    Int
+  alumno      Alumno   @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+
+  cursoId     Int
+  curso       Curso    @relation(fields: [cursoId], references: [id], onDelete: Restrict)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([alumnoId])
+  @@index([cursoId])
+  @@index([fecha])
+  @@index([alumnoId, cursoId])
+  @@unique([alumnoId, cursoId, descripcion, fecha])
+}
+
+model Asistencia {
+  id          Int      @id @default(autoincrement())
+  fecha       DateTime @db.Date
+  presente    Boolean  @default(true)
+  observacion String?
+
+  alumnoId    Int
+  alumno      Alumno   @relation(fields: [alumnoId], references: [id], onDelete: Cascade)
+
+  cursoId     Int
+  curso       Curso    @relation(fields: [cursoId], references: [id], onDelete: Restrict)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([alumnoId])
+  @@index([cursoId])
+  @@index([fecha])
+  @@unique([alumnoId, cursoId, fecha])
+}
+
+enum Role {
+  DOCENTE
+  ALUMNO
+}
+
+model User {
+  id           Int      @id @default(autoincrement())
+  email        String?  @unique
+  username     String?  @unique
+  passwordHash String
+  role         Role     @default(ALUMNO)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  alumno       Alumno?
+
+  @@index([email])
+  @@index([username])
+}

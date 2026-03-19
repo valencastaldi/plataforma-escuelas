@@ -1,0 +1,173 @@
+<section class="preview-shell">
+  <header class="hero">
+    <p class="eyebrow">Plataforma Escuelas</p>
+    <h1>Panel de Academia de Ingles</h1>
+    <p class="subtitle">
+      Sesion real conectada al backend. Aqui puedes ver un ejemplo de novedades y avisos institucionales.
+    </p>
+    <div class="news-grid">
+      <article>
+        <h3>Novedad semanal</h3>
+        <p>Este viernes hay club de conversacion de 18:00 a 19:30 para niveles intermedio y avanzado.</p>
+      </article>
+      <article>
+        <h3>Aviso administrativo</h3>
+        <p>Recordatorio: la cuota de abril vence el dia 10. Puedes pagar en recepcion o por transferencia.</p>
+      </article>
+      <article>
+        <h3>Proximos examenes</h3>
+        <p>Mock exam interno: sabado 27. Inscripcion abierta hasta el martes 23.</p>
+      </article>
+    </div>
+  </header>
+
+  <section class="control-row">
+    <label class="field" *ngIf="role === 'ALUMNO' && selectedAlumnoId">
+      Alumno autenticado
+      <input type="text" [value]="alumnoNombre(selectedAlumnoId)" readonly />
+    </label>
+
+    <label class="field" *ngIf="role === 'DOCENTE'">
+      Filtro por curso
+      <select [(ngModel)]="filtroCursoId" (ngModelChange)="applyFilters()">
+        <option [ngValue]="null">Todos</option>
+        <option *ngFor="let c of cursos" [ngValue]="c.id">{{ cursoLabel(c) }}</option>
+      </select>
+    </label>
+
+    <label class="field" *ngIf="role === 'DOCENTE'">
+      Filtro por alumno
+      <select [(ngModel)]="filtroAlumnoId" (ngModelChange)="applyFilters()">
+        <option [ngValue]="null">Todos</option>
+        <option *ngFor="let a of alumnos" [ngValue]="a.id">{{ a.nombre }}</option>
+      </select>
+    </label>
+  </section>
+
+  <nav class="tabs">
+    <button *ngFor="let vista of vistas" type="button" [class.active]="vistaActual === vista" (click)="setVista(vista)">
+      {{ vista | titlecase }}
+    </button>
+  </nav>
+
+  <section class="permission-banner" [class.readonly]="!canWrite">
+    <span *ngIf="canWrite">Puedes crear, editar y borrar.</span>
+    <span *ngIf="!canWrite">Solo lectura de tus propios registros.</span>
+  </section>
+
+  <section class="panel" *ngIf="loading">
+    Cargando datos...
+  </section>
+
+  <section class="panel error-panel" *ngIf="!loading && errorMessage">
+    {{ errorMessage }}
+  </section>
+
+  <section *ngIf="!loading && !errorMessage && vistaActual === 'resumen'" class="panel grid">
+    <article class="kpi">
+      <h3>Cursos</h3>
+      <p>{{ resumenStats.totalCursos }}</p>
+    </article>
+    <article class="kpi">
+      <h3>Alumnos visibles</h3>
+      <p>{{ resumenStats.totalAlumnos }}</p>
+    </article>
+    <article class="kpi">
+      <h3>Notas visibles</h3>
+      <p>{{ resumenStats.totalNotas }}</p>
+    </article>
+    <article class="kpi">
+      <h3>Asistencias visibles</h3>
+      <p>{{ resumenStats.totalAsistencias }}</p>
+    </article>
+  </section>
+
+  <section *ngIf="!loading && !errorMessage && vistaActual === 'notas'" class="panel">
+    <h2>Notas</h2>
+    <div class="actions">
+      <button type="button" [disabled]="!canWrite" (click)="createNota()">Nueva nota</button>
+      <button type="button" [disabled]="!canWrite || !selectedNotaId" (click)="editSelectedNota()">Editar seleccionada</button>
+      <button type="button" [disabled]="!canWrite || !selectedNotaId" (click)="deleteSelectedNota()">Eliminar seleccionada</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Alumno</th>
+          <th>Curso</th>
+          <th>Descripcion</th>
+          <th>Valor</th>
+          <th>Fecha</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let n of notasVisibles" (click)="selectNota(n.id)" [class.row-selected]="selectedNotaId === n.id">
+          <td>{{ alumnoNombre(n.alumnoId) }}</td>
+          <td>{{ cursoNombre(n.cursoId) }}</td>
+          <td>{{ descripcionNota(n.descripcion) }}</td>
+          <td>{{ n.valor }}</td>
+          <td>{{ fechaCorta(n.fecha) }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section *ngIf="!loading && !errorMessage && vistaActual === 'asistencias'" class="panel">
+    <h2>Asistencias</h2>
+    <div class="actions">
+      <button type="button" [disabled]="!canWrite" (click)="createAsistencia()">Registrar asistencia</button>
+      <button type="button" [disabled]="!canWrite || !selectedAsistenciaId" (click)="editSelectedAsistencia()">Editar seleccionada</button>
+      <button type="button" [disabled]="!canWrite || !selectedAsistenciaId" (click)="deleteSelectedAsistencia()">Eliminar seleccionada</button>
+    </div>
+    <table>
+      <thead>
+        <tr>
+          <th>Alumno</th>
+          <th>Curso</th>
+          <th>Fecha</th>
+          <th>Estado</th>
+          <th>Observacion</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let a of asistenciasVisibles" (click)="selectAsistencia(a.id)" [class.row-selected]="selectedAsistenciaId === a.id">
+          <td>{{ alumnoNombre(a.alumnoId) }}</td>
+          <td>{{ cursoNombre(a.cursoId) }}</td>
+          <td>{{ fechaCorta(a.fecha) }}</td>
+          <td>
+            <span [class.ok]="a.presente" [class.bad]="!a.presente">
+              {{ a.presente ? 'Presente' : 'Ausente' }}
+            </span>
+          </td>
+          <td>{{ a.observacion || '-' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section *ngIf="!loading && !errorMessage && vistaActual === 'alumnos'" class="panel">
+    <h2>Alumnos</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Curso</th>
+          <th>User vinculado</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let a of alumnosVisibles">
+          <td>{{ a.nombre }}</td>
+          <td>{{ cursoNombre(a.cursoId) }}</td>
+          <td>{{ a.userId }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section *ngIf="!loading && !errorMessage && vistaActual === 'cursos'" class="panel">
+    <h2>Cursos</h2>
+    <ul class="chips">
+      <li *ngFor="let c of cursos">{{ cursoLabel(c) }}</li>
+    </ul>
+  </section>
+</section>

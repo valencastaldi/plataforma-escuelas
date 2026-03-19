@@ -1,0 +1,28 @@
+<section class="login-shell">
+  <article class="login-card">
+    <p class="eyebrow">Plataforma Escuelas</p>
+    <h2>Iniciar sesion</h2>
+    <p class="hint">Entrá como ALUMNO para ver solo tus datos o como DOCENTE para ver y gestionar todo.</p>
+
+    <label>
+      Usuario o email
+      <input type="text" [(ngModel)]="identifier" placeholder="docente o docente@escuelas.local" />
+    </label>
+
+    <label>
+      Contraseña
+      <input type="password" [(ngModel)]="password" placeholder="********" />
+    </label>
+
+    <button type="button" (click)="submit()" [disabled]="loading">
+      {{ loading ? 'Ingresando...' : 'Entrar' }}
+    </button>
+
+    <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+    <div class="demo-box">
+      <p>Demo docente (seed):</p>
+      <strong>docente@escuelas.local / Docente123!</strong>
+    </div>
+  </article>
+</section>

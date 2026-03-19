@@ -1,0 +1,90 @@
+:host {
+  display: block;
+}
+
+.login-shell {
+  max-width: 1150px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+.login-card {
+  max-width: 460px;
+  border-radius: 22px;
+  border: 1px solid #d9e7ea;
+  background: rgba(255, 255, 255, 0.86);
+  padding: 24px;
+  box-shadow: 0 16px 38px rgba(14, 66, 73, 0.08);
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  margin: 0;
+  color: #0f5f5d;
+  font-weight: 800;
+  font-size: 0.8rem;
+}
+
+h2 {
+  margin: 10px 0;
+  font-size: 2rem;
+}
+
+.hint {
+  color: #3b4f57;
+  margin-bottom: 16px;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+  color: #23424d;
+  font-weight: 600;
+}
+
+input {
+  border: 1px solid #cad8dc;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 1rem;
+  font-family: inherit;
+}
+
+button {
+  margin-top: 8px;
+  border: 0;
+  border-radius: 12px;
+  background: #0f5f5d;
+  color: #f5fcfd;
+  padding: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  width: 100%;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #b6452c;
+  font-weight: 700;
+  margin-top: 12px;
+}
+
+.demo-box {
+  margin-top: 18px;
+  border-radius: 12px;
+  background: #edf7f8;
+  border: 1px solid #d2e8ea;
+  padding: 12px;
+}
+
+.demo-box p {
+  margin: 0 0 4px;
+  color: #365861;
+}
