@@ -1,204 +1,319 @@
-<section class="preview-shell">
-  <header class="hero">
-    <p class="eyebrow">Plataforma Escuelas</p>
-    <h1>Panel de Academia de Ingles</h1>
-    <p class="subtitle">
-      Sesion real conectada al backend. Aqui puedes ver novedades y avisos institucionales en vivo.
-    </p>
+<div class="dashboard-shell">
 
-    <div class="actions" *ngIf="canWrite">
-      <button type="button" (click)="createAviso()">Nuevo aviso</button>
-      <button type="button" [disabled]="!selectedAvisoId" (click)="editSelectedAviso()">Editar aviso</button>
-      <button type="button" [disabled]="!selectedAvisoId" (click)="deleteSelectedAviso()">Eliminar aviso</button>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <span class="brand-dot"></span>
+      <span class="brand-text">Plataforma Escuelas</span>
     </div>
 
-    <div class="news-grid">
-      <article
-        *ngFor="let aviso of avisosVisibles"
-        (click)="selectAviso(aviso.id)"
-        [class.aviso-selected]="selectedAvisoId === aviso.id"
+    <nav class="sidebar-nav">
+      <button
+        *ngFor="let item of navItems"
+        type="button"
+        class="nav-item"
+        [class.active]="vistaActual === item.id"
+        (click)="setVista(item.id)"
       >
-        <p class="chip">{{ avisoCategoriaLabel(aviso.categoria) }}</p>
-        <h3>{{ aviso.titulo }}</h3>
-        <p>{{ aviso.contenido }}</p>
-      </article>
-      <article *ngIf="!avisosVisibles.length" class="empty-news">
-        <h3>Sin avisos</h3>
-        <p>No hay avisos activos para mostrar.</p>
-      </article>
+        {{ item.label }}
+      </button>
+    </nav>
+
+    <div class="sidebar-footer" *ngIf="currentUser">
+      <div class="user-row">
+        <div class="user-avatar">{{ userInitial }}</div>
+        <div class="user-meta">
+          <span class="user-name">{{ currentUser.username ?? currentUser.email }}</span>
+          <span class="user-role">{{ currentUser.role }}</span>
+        </div>
+      </div>
+      <button type="button" class="logout-btn" (click)="logout()">Cerrar sesion</button>
     </div>
-  </header>
+  </aside>
 
-  <section class="control-row">
-    <label class="field" *ngIf="role === 'ALUMNO' && selectedAlumnoId">
-      Alumno autenticado
-      <input type="text" [value]="alumnoNombre(selectedAlumnoId)" readonly />
-    </label>
+  <!-- MAIN AREA -->
+  <div class="main-area">
 
-    <label class="field" *ngIf="role === 'DOCENTE'">
-      Filtro por curso
-      <select [(ngModel)]="filtroCursoId" (ngModelChange)="applyFilters()">
-        <option [ngValue]="null">Todos</option>
-        <option *ngFor="let c of cursos" [ngValue]="c.id">{{ cursoLabel(c) }}</option>
-      </select>
-    </label>
+    <header class="main-header">
+      <h1 class="section-title">{{ vistaTitle }}</h1>
 
-    <label class="field" *ngIf="role === 'DOCENTE'">
-      Filtro por alumno
-      <select [(ngModel)]="filtroAlumnoId" (ngModelChange)="applyFilters()">
-        <option [ngValue]="null">Todos</option>
-        <option *ngFor="let a of alumnos" [ngValue]="a.id">{{ a.nombre }}</option>
-      </select>
-    </label>
-  </section>
+      <div class="header-filters" *ngIf="vistaActual !== 'mensajes' && vistaActual !== 'perfil'">
+        <label class="filter-field" *ngIf="role === 'ALUMNO' && selectedAlumnoId">
+          <span class="pe-label">Alumno</span>
+          <input class="pe-control" type="text" [value]="alumnoNombre(selectedAlumnoId)" readonly />
+        </label>
+        <label class="filter-field" *ngIf="role === 'DOCENTE'">
+          <span class="pe-label">Curso</span>
+          <select class="pe-control" [(ngModel)]="filtroCursoId" (ngModelChange)="applyFilters()">
+            <option [ngValue]="null">Todos</option>
+            <option *ngFor="let c of cursos" [ngValue]="c.id">{{ cursoLabel(c) }}</option>
+          </select>
+        </label>
+        <label class="filter-field" *ngIf="role === 'DOCENTE'">
+          <span class="pe-label">Alumno</span>
+          <select class="pe-control" [(ngModel)]="filtroAlumnoId" (ngModelChange)="applyFilters()">
+            <option [ngValue]="null">Todos</option>
+            <option *ngFor="let a of alumnos" [ngValue]="a.id">{{ a.nombre }}</option>
+          </select>
+        </label>
+      </div>
+    </header>
 
-  <nav class="tabs">
-    <button *ngFor="let vista of vistas" type="button" [class.active]="vistaActual === vista" (click)="setVista(vista)">
-      {{ vista | titlecase }}
-    </button>
-  </nav>
+    <main class="main-content">
 
-  <section class="permission-banner" [class.readonly]="!canWrite">
-    <span *ngIf="canWrite">Puedes crear, editar y borrar.</span>
-    <span *ngIf="!canWrite">Solo lectura de tus propios registros.</span>
-  </section>
+      <!-- LOADING / ERROR -->
+      <div class="state-panel" *ngIf="loading">Cargando datos...</div>
+      <div class="state-panel error" *ngIf="!loading && errorMessage">{{ errorMessage }}</div>
 
-  <section class="panel" *ngIf="loading">
-    Cargando datos...
-  </section>
+      <!-- RESUMEN -->
+      <section *ngIf="!loading && !errorMessage && vistaActual === 'resumen'">
+        <div class="kpi-grid">
+          <article class="kpi">
+            <span class="kpi-label">Cursos</span>
+            <span class="kpi-value">{{ resumenStats.totalCursos }}</span>
+          </article>
+          <article class="kpi">
+            <span class="kpi-label">Alumnos</span>
+            <span class="kpi-value">{{ resumenStats.totalAlumnos }}</span>
+          </article>
+          <article class="kpi">
+            <span class="kpi-label">Notas</span>
+            <span class="kpi-value">{{ resumenStats.totalNotas }}</span>
+          </article>
+          <article class="kpi">
+            <span class="kpi-label">Asistencias</span>
+            <span class="kpi-value">{{ resumenStats.totalAsistencias }}</span>
+          </article>
+        </div>
 
-  <section class="panel error-panel" *ngIf="!loading && errorMessage">
-    {{ errorMessage }}
-  </section>
+        <div class="panel avisos-panel">
+          <div class="panel-head">
+            <h2>Avisos institucionales</h2>
+            <div class="actions" *ngIf="canWrite">
+              <button type="button" (click)="createAviso()">+ Nuevo aviso</button>
+              <button type="button" [disabled]="!selectedAvisoId" (click)="editSelectedAviso()">Editar</button>
+              <button type="button" [disabled]="!selectedAvisoId" (click)="deleteSelectedAviso()">Eliminar</button>
+            </div>
+          </div>
+          <div class="news-grid">
+            <article
+              *ngFor="let aviso of avisosVisibles"
+              (click)="selectAviso(aviso.id)"
+              [class.aviso-selected]="selectedAvisoId === aviso.id"
+            >
+              <span class="chip">{{ avisoCategoriaLabel(aviso.categoria) }}</span>
+              <h3>{{ aviso.titulo }}</h3>
+              <p>{{ aviso.contenido }}</p>
+            </article>
+            <article *ngIf="!avisosVisibles.length" class="empty-news">
+              <p>No hay avisos activos.</p>
+            </article>
+          </div>
+        </div>
+      </section>
 
-  <section *ngIf="!loading && !errorMessage && vistaActual === 'resumen'" class="panel grid">
-    <article class="kpi">
-      <h3>Cursos</h3>
-      <p>{{ resumenStats.totalCursos }}</p>
-    </article>
-    <article class="kpi">
-      <h3>Alumnos visibles</h3>
-      <p>{{ resumenStats.totalAlumnos }}</p>
-    </article>
-    <article class="kpi">
-      <h3>Notas visibles</h3>
-      <p>{{ resumenStats.totalNotas }}</p>
-    </article>
-    <article class="kpi">
-      <h3>Asistencias visibles</h3>
-      <p>{{ resumenStats.totalAsistencias }}</p>
-    </article>
-  </section>
+      <!-- NOTAS -->
+      <section class="panel" *ngIf="!loading && !errorMessage && vistaActual === 'notas'">
+        <div class="actions" *ngIf="canWrite">
+          <button type="button" (click)="createNota()">+ Nueva nota</button>
+          <button type="button" [disabled]="!selectedNotaId" (click)="editSelectedNota()">Editar</button>
+          <button type="button" [disabled]="!selectedNotaId" (click)="deleteSelectedNota()">Eliminar</button>
+        </div>
+        <p class="table-tip" *ngIf="canWrite && !selectedNotaId">Selecciona una fila para editar o eliminar.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Alumno</th>
+                <th>Curso</th>
+                <th>Descripcion</th>
+                <th>Valor</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let n of notasVisibles" (click)="selectNota(n.id)" [class.row-selected]="selectedNotaId === n.id">
+                <td>{{ alumnoNombre(n.alumnoId) }}</td>
+                <td>{{ cursoNombre(n.cursoId) }}</td>
+                <td>{{ descripcionNota(n.descripcion) }}</td>
+                <td>{{ n.valor }}</td>
+                <td>{{ fechaCorta(n.fecha) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pager" *ngIf="totalPaginasNotas > 1">
+          <button type="button" (click)="previousPage('notas')" [disabled]="!canPrev('notas')">Anterior</button>
+          <span>{{ notasPage }} / {{ totalPaginasNotas }}</span>
+          <button type="button" (click)="nextPage('notas')" [disabled]="!canNext('notas')">Siguiente</button>
+        </div>
+      </section>
 
-  <section *ngIf="!loading && !errorMessage && vistaActual === 'notas'" class="panel">
-    <h2>Notas</h2>
-    <div class="actions">
-      <button type="button" [disabled]="!canWrite" (click)="createNota()">Nueva nota</button>
-      <button type="button" [disabled]="!canWrite || !selectedNotaId" (click)="editSelectedNota()">Editar seleccionada</button>
-      <button type="button" [disabled]="!canWrite || !selectedNotaId" (click)="deleteSelectedNota()">Eliminar seleccionada</button>
-    </div>
-    <p class="table-tip" *ngIf="canWrite && !selectedNotaId">Selecciona una fila para editar o eliminar.</p>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Alumno</th>
-            <th>Curso</th>
-            <th>Descripcion</th>
-            <th>Valor</th>
-            <th>Fecha</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let n of notasVisibles" (click)="selectNota(n.id)" [class.row-selected]="selectedNotaId === n.id">
-            <td>{{ alumnoNombre(n.alumnoId) }}</td>
-            <td>{{ cursoNombre(n.cursoId) }}</td>
-            <td>{{ descripcionNota(n.descripcion) }}</td>
-            <td>{{ n.valor }}</td>
-            <td>{{ fechaCorta(n.fecha) }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="pager" *ngIf="totalPaginasNotas > 1">
-      <button type="button" (click)="previousPage('notas')" [disabled]="!canPrev('notas')">Anterior</button>
-      <span>Pagina {{ notasPage }} de {{ totalPaginasNotas }}</span>
-      <button type="button" (click)="nextPage('notas')" [disabled]="!canNext('notas')">Siguiente</button>
-    </div>
-  </section>
+      <!-- ASISTENCIAS -->
+      <section class="panel" *ngIf="!loading && !errorMessage && vistaActual === 'asistencias'">
+        <div class="actions" *ngIf="canWrite">
+          <button type="button" (click)="createAsistencia()">+ Registrar</button>
+          <button type="button" [disabled]="!selectedAsistenciaId" (click)="editSelectedAsistencia()">Editar</button>
+          <button type="button" [disabled]="!selectedAsistenciaId" (click)="deleteSelectedAsistencia()">Eliminar</button>
+        </div>
+        <p class="table-tip" *ngIf="canWrite && !selectedAsistenciaId">Selecciona una fila para editar o eliminar.</p>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Alumno</th>
+                <th>Curso</th>
+                <th>Fecha</th>
+                <th>Estado</th>
+                <th>Observacion</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let a of asistenciasVisibles" (click)="selectAsistencia(a.id)" [class.row-selected]="selectedAsistenciaId === a.id">
+                <td>{{ alumnoNombre(a.alumnoId) }}</td>
+                <td>{{ cursoNombre(a.cursoId) }}</td>
+                <td>{{ fechaCorta(a.fecha) }}</td>
+                <td>
+                  <span [class.ok]="a.presente" [class.bad]="!a.presente">
+                    {{ a.presente ? 'Presente' : 'Ausente' }}
+                  </span>
+                </td>
+                <td>{{ a.observacion || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pager" *ngIf="totalPaginasAsistencias > 1">
+          <button type="button" (click)="previousPage('asistencias')" [disabled]="!canPrev('asistencias')">Anterior</button>
+          <span>{{ asistenciasPage }} / {{ totalPaginasAsistencias }}</span>
+          <button type="button" (click)="nextPage('asistencias')" [disabled]="!canNext('asistencias')">Siguiente</button>
+        </div>
+      </section>
 
-  <section *ngIf="!loading && !errorMessage && vistaActual === 'asistencias'" class="panel">
-    <h2>Asistencias</h2>
-    <div class="actions">
-      <button type="button" [disabled]="!canWrite" (click)="createAsistencia()">Registrar asistencia</button>
-      <button type="button" [disabled]="!canWrite || !selectedAsistenciaId" (click)="editSelectedAsistencia()">Editar seleccionada</button>
-      <button type="button" [disabled]="!canWrite || !selectedAsistenciaId" (click)="deleteSelectedAsistencia()">Eliminar seleccionada</button>
-    </div>
-    <p class="table-tip" *ngIf="canWrite && !selectedAsistenciaId">Selecciona una fila para editar o eliminar.</p>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Alumno</th>
-            <th>Curso</th>
-            <th>Fecha</th>
-            <th>Estado</th>
-            <th>Observacion</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let a of asistenciasVisibles" (click)="selectAsistencia(a.id)" [class.row-selected]="selectedAsistenciaId === a.id">
-            <td>{{ alumnoNombre(a.alumnoId) }}</td>
-            <td>{{ cursoNombre(a.cursoId) }}</td>
-            <td>{{ fechaCorta(a.fecha) }}</td>
-            <td>
-              <span [class.ok]="a.presente" [class.bad]="!a.presente">
-                {{ a.presente ? 'Presente' : 'Ausente' }}
-              </span>
-            </td>
-            <td>{{ a.observacion || '-' }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="pager" *ngIf="totalPaginasAsistencias > 1">
-      <button type="button" (click)="previousPage('asistencias')" [disabled]="!canPrev('asistencias')">Anterior</button>
-      <span>Pagina {{ asistenciasPage }} de {{ totalPaginasAsistencias }}</span>
-      <button type="button" (click)="nextPage('asistencias')" [disabled]="!canNext('asistencias')">Siguiente</button>
-    </div>
-  </section>
+      <!-- ALUMNOS -->
+      <section class="panel" *ngIf="!loading && !errorMessage && vistaActual === 'alumnos'">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre</th>
+                <th>Curso</th>
+                <th>Usuario vinculado</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let a of alumnosVisibles">
+                <td>{{ a.nombre }}</td>
+                <td>{{ cursoNombre(a.cursoId) }}</td>
+                <td>{{ userVinculadoLabel(a) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="pager" *ngIf="totalPaginasAlumnos > 1">
+          <button type="button" (click)="previousPage('alumnos')" [disabled]="!canPrev('alumnos')">Anterior</button>
+          <span>{{ alumnosPage }} / {{ totalPaginasAlumnos }}</span>
+          <button type="button" (click)="nextPage('alumnos')" [disabled]="!canNext('alumnos')">Siguiente</button>
+        </div>
+      </section>
 
-  <section *ngIf="!loading && !errorMessage && vistaActual === 'alumnos'" class="panel">
-    <h2>Alumnos</h2>
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Nombre</th>
-            <th>Curso</th>
-            <th>User vinculado</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let a of alumnosVisibles">
-            <td>{{ a.nombre }}</td>
-            <td>{{ cursoNombre(a.cursoId) }}</td>
-            <td>{{ userVinculadoLabel(a) }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-    <div class="pager" *ngIf="totalPaginasAlumnos > 1">
-      <button type="button" (click)="previousPage('alumnos')" [disabled]="!canPrev('alumnos')">Anterior</button>
-      <span>Pagina {{ alumnosPage }} de {{ totalPaginasAlumnos }}</span>
-      <button type="button" (click)="nextPage('alumnos')" [disabled]="!canNext('alumnos')">Siguiente</button>
-    </div>
-  </section>
+      <!-- CURSOS -->
+      <section class="panel" *ngIf="!loading && !errorMessage && vistaActual === 'cursos'">
+        <ul class="curso-list">
+          <li *ngFor="let c of cursos">{{ cursoLabel(c) }}</li>
+        </ul>
+      </section>
 
-  <section *ngIf="!loading && !errorMessage && vistaActual === 'cursos'" class="panel">
-    <h2>Cursos</h2>
-    <ul class="chips">
-      <li *ngFor="let c of cursos">{{ cursoLabel(c) }}</li>
-    </ul>
-  </section>
-</section>
+      <!-- MENSAJES -->
+      <section *ngIf="vistaActual === 'mensajes'">
+        <div class="msg-toolbar" *ngIf="canWrite">
+          <button type="button" class="btn-primary" (click)="crearMensaje()">+ Nuevo mensaje</button>
+        </div>
+
+        <div class="state-panel" *ngIf="mensajesLoading">Cargando mensajes...</div>
+        <div class="state-panel error" *ngIf="mensajesError">{{ mensajesError }}</div>
+
+        <div *ngIf="!mensajesLoading && !mensajesError">
+          <div *ngIf="mensajes.length === 0" class="panel placeholder-panel">
+            <div class="placeholder-icon">&#9993;</div>
+            <p>No hay mensajes todavia.</p>
+          </div>
+
+          <div class="msg-thread panel" *ngFor="let m of mensajes">
+            <!-- Cabecera del mensaje -->
+            <div class="msg-head" (click)="toggleExpand(m.id)">
+              <div class="msg-meta">
+                <span class="msg-autor">{{ autorLabel(m.autor) }}</span>
+                <span class="msg-arrow">{{ m.autor.role === 'DOCENTE' ? '→' : '↩' }}</span>
+                <span class="msg-destino">{{ mensajeDestinoLabel(m) }}</span>
+                <span class="msg-badge" *ngIf="m.respuestas.length > 0">
+                  {{ m.respuestas.length }} respuesta{{ m.respuestas.length > 1 ? 's' : '' }}
+                </span>
+              </div>
+              <div class="msg-actions-row">
+                <span class="msg-fecha">{{ fechaCorta(m.createdAt) }}</span>
+                <button type="button" class="btn-icon-delete" *ngIf="canWrite" (click)="$event.stopPropagation(); deleteMensajeById(m.id)">✕</button>
+              </div>
+            </div>
+
+            <p class="msg-contenido">{{ m.contenido }}</p>
+
+            <!-- Respuestas expandidas -->
+            <div class="msg-respuestas" *ngIf="expandedMensajeId === m.id">
+              <div class="msg-reply-item" *ngFor="let r of m.respuestas" [class.privada]="r.soloProfesor">
+                <span class="reply-autor">{{ autorLabel(r.autor) }}</span>
+                <span class="reply-private-badge" *ngIf="r.soloProfesor">privado</span>
+                <p class="reply-texto">{{ r.contenido }}</p>
+                <span class="reply-fecha">{{ fechaCorta(r.createdAt) }}</span>
+              </div>
+
+              <!-- Formulario de respuesta (solo ALUMNO) -->
+              <div class="reply-form" *ngIf="!canWrite">
+                <textarea
+                  class="pe-control"
+                  [(ngModel)]="replyText"
+                  placeholder="Escribi tu respuesta..."
+                  rows="3"
+                ></textarea>
+                <div class="reply-form-footer">
+                  <label class="reply-visibility pe-check">
+                    <input type="checkbox" [(ngModel)]="replySoloProfesor" />
+                    Solo para el profesor
+                  </label>
+                  <button type="button" class="btn-primary" [disabled]="!replyText.trim()" (click)="submitReply(m.id)">
+                    Responder
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button type="button" class="btn-expand" (click)="toggleExpand(m.id)">
+              {{ expandedMensajeId === m.id ? 'Cerrar ▲' : (m.respuestas.length > 0 ? 'Ver respuestas ▼' : 'Responder ▼') }}
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- PERFIL -->
+      <section class="panel perfil-panel" *ngIf="vistaActual === 'perfil' && currentUser">
+        <div class="perfil-avatar">{{ userInitial }}</div>
+        <dl class="perfil-list">
+          <div class="perfil-row">
+            <dt>Usuario</dt>
+            <dd>{{ currentUser.username ?? '—' }}</dd>
+          </div>
+          <div class="perfil-row">
+            <dt>Email</dt>
+            <dd>{{ currentUser.email ?? '—' }}</dd>
+          </div>
+          <div class="perfil-row">
+            <dt>Rol</dt>
+            <dd>{{ currentUser.role }}</dd>
+          </div>
+        </dl>
+        <button type="button" class="btn-danger" (click)="logout()">Cerrar sesion</button>
+      </section>
+
+    </main>
+  </div>
+</div>

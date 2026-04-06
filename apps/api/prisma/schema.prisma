@@ -13,9 +13,10 @@ model Curso {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  alumnos   Alumno[]
-  notas     Nota[]
+  alumnos     Alumno[]
+  notas       Nota[]
   asistencias Asistencia[]
+  mensajes    Mensaje[]
 }
 
 model Alumno {
@@ -112,8 +113,40 @@ model User {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  alumno       Alumno?
+  alumno             Alumno?
+  mensajesEnviados   Mensaje[] @relation("MensajesEnviados")
+  mensajesRecibidos  Mensaje[] @relation("MensajesRecibidos")
 
   @@index([email])
   @@index([username])
+}
+
+model Mensaje {
+  id             Int      @id @default(autoincrement())
+  contenido      String   @db.Text
+
+  autorId        Int
+  autor          User     @relation("MensajesEnviados", fields: [autorId], references: [id], onDelete: Cascade)
+
+  // Destino (solo en mensajes raíz de DOCENTE)
+  cursoId        Int?
+  curso          Curso?   @relation(fields: [cursoId], references: [id], onDelete: Cascade)
+
+  destinatarioId Int?
+  destinatario   User?    @relation("MensajesRecibidos", fields: [destinatarioId], references: [id], onDelete: Cascade)
+
+  // Hilo de respuestas
+  padreId        Int?
+  padre          Mensaje? @relation("Respuestas", fields: [padreId], references: [id], onDelete: Cascade)
+  respuestas     Mensaje[] @relation("Respuestas")
+
+  // Solo visible para el docente (respuestas privadas de alumnos)
+  soloProfesor   Boolean  @default(false)
+
+  createdAt      DateTime @default(now())
+
+  @@index([autorId])
+  @@index([cursoId])
+  @@index([destinatarioId])
+  @@index([padreId])
 }

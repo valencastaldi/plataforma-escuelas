@@ -9,17 +9,19 @@ import {
   AvisoCategoria,
   CreateAsistenciaInput,
   CreateAvisoInput,
+  CreateMensajeInput,
   CreateNotaInput,
   Curso,
+  Mensaje,
   Nota,
   UpdateAsistenciaInput,
   UpdateAvisoInput,
   UpdateNotaInput,
 } from '../core/api.service';
 import { AuthService, AuthUser, UserRole } from '../core/auth.service';
-import { ModalService, ModalType, FormField } from '../core/modal.service';
+import { FormField, ModalService, ModalType } from '../core/modal.service';
 
-type Vista = 'resumen' | 'notas' | 'asistencias' | 'alumnos' | 'cursos';
+type Vista = 'resumen' | 'notas' | 'asistencias' | 'alumnos' | 'cursos' | 'mensajes' | 'perfil';
 type TablaPaginada = 'notas' | 'asistencias' | 'alumnos';
 
 @Component({
@@ -28,7 +30,15 @@ type TablaPaginada = 'notas' | 'asistencias' | 'alumnos';
   styleUrls: ['./preview.component.scss'],
 })
 export class PreviewComponent implements OnInit {
-  protected readonly vistas: ReadonlyArray<Vista> = ['resumen', 'notas', 'asistencias', 'alumnos', 'cursos'];
+  protected readonly navItems: ReadonlyArray<{ id: Vista; label: string }> = [
+    { id: 'resumen',     label: 'Resumen' },
+    { id: 'notas',       label: 'Notas' },
+    { id: 'asistencias', label: 'Asistencias' },
+    { id: 'alumnos',     label: 'Alumnos' },
+    { id: 'cursos',      label: 'Cursos' },
+    { id: 'mensajes',    label: 'Mensajes' },
+    { id: 'perfil',      label: 'Perfil' },
+  ];
   protected vistaActual: Vista = 'resumen';
 
   protected role: UserRole = 'ALUMNO';
@@ -54,6 +64,13 @@ export class PreviewComponent implements OnInit {
   protected asistencias: Asistencia[] = [];
   protected avisos: Aviso[] = [];
 
+  protected mensajes: Mensaje[] = [];
+  protected mensajesLoading = false;
+  protected mensajesError = '';
+  protected expandedMensajeId: number | null = null;
+  protected replyText = '';
+  protected replySoloProfesor = false;
+
   constructor(
     private readonly api: ApiService,
     private readonly authService: AuthService,
@@ -77,6 +94,151 @@ export class PreviewComponent implements OnInit {
 
   protected setVista(vista: Vista): void {
     this.vistaActual = vista;
+    if (vista === 'mensajes') {
+      this.loadMensajes();
+    }
+  }
+
+  protected loadMensajes(): void {
+    this.mensajesLoading = true;
+    this.mensajesError = '';
+    this.api.getMensajes().subscribe({
+      next: (msgs) => {
+        this.mensajes = msgs;
+        this.mensajesLoading = false;
+      },
+      error: () => {
+        this.mensajesError = 'No se pudieron cargar los mensajes.';
+        this.mensajesLoading = false;
+      },
+    });
+  }
+
+  protected toggleExpand(id: number): void {
+    this.expandedMensajeId = this.expandedMensajeId === id ? null : id;
+    this.replyText = '';
+    this.replySoloProfesor = false;
+  }
+
+  protected submitReply(padreId: number): void {
+    if (!this.replyText.trim()) return;
+    const input: CreateMensajeInput = {
+      contenido: this.replyText.trim(),
+      padreId,
+      soloProfesor: this.replySoloProfesor,
+    };
+    this.api.createMensaje(input).subscribe({
+      next: () => {
+        this.replyText = '';
+        this.replySoloProfesor = false;
+        this.loadMensajes();
+      },
+      error: () => {
+        this.mensajesError = 'No se pudo enviar la respuesta.';
+      },
+    });
+  }
+
+  protected deleteMensajeById(id: number): void {
+    if (!window.confirm('¿Eliminar este mensaje y todas sus respuestas?')) return;
+    this.api.deleteMensaje(id).subscribe({
+      next: () => this.loadMensajes(),
+      error: () => {
+        this.mensajesError = 'No se pudo eliminar el mensaje.';
+      },
+    });
+  }
+
+  protected crearMensaje(): void {
+    const destinatarioOptions = this.alumnos.map((a) => ({
+      label: a.nombre,
+      value: String(a.userId),
+    }));
+    const cursoOptions = this.cursos.map((c) => ({
+      label: c.nombre,
+      value: String(c.id),
+    }));
+
+    const fields = [
+      {
+        name: 'destino',
+        label: 'Enviar a',
+        type: 'select' as const,
+        value: 'curso',
+        options: [
+          { label: 'Un curso completo', value: 'curso' },
+          { label: 'Un alumno individual', value: 'alumno' },
+        ],
+      },
+      {
+        name: 'cursoId',
+        label: 'Curso',
+        type: 'select' as const,
+        value: cursoOptions[0]?.value ?? '',
+        options: cursoOptions,
+      },
+      {
+        name: 'destinatarioId',
+        label: 'Alumno',
+        type: 'select' as const,
+        value: destinatarioOptions[0]?.value ?? '',
+        options: destinatarioOptions,
+      },
+      {
+        name: 'contenido',
+        label: 'Mensaje',
+        type: 'textarea' as const,
+        value: '',
+        required: true,
+        placeholder: 'Escribí tu mensaje...',
+      },
+    ];
+
+    this.modal
+      .open({ type: ModalType.MENSAJE_CREATE, title: 'Nuevo mensaje', fields, submitLabel: 'Enviar' })
+      .then((values) => {
+        const input: CreateMensajeInput = {
+          contenido: values['contenido'],
+          ...(values['destino'] === 'curso'
+            ? { cursoId: Number(values['cursoId']) }
+            : { destinatarioId: Number(values['destinatarioId']) }),
+        };
+        this.api.createMensaje(input).subscribe({
+          next: () => this.loadMensajes(),
+          error: () => {
+            this.mensajesError = 'No se pudo enviar el mensaje.';
+          },
+        });
+      })
+      .catch(() => {});
+  }
+
+  protected mensajeDestinoLabel(m: Mensaje): string {
+    if (m.curso) return `Curso ${m.curso.nombre}`;
+    if (m.destinatario) return m.destinatario.username ?? m.destinatario.email ?? 'Alumno';
+    return '';
+  }
+
+  protected autorLabel(autor: { username?: string | null; email?: string | null }): string {
+    return autor.username ?? autor.email ?? 'Usuario';
+  }
+
+  protected get vistaTitle(): string {
+    const titles: Record<Vista, string> = {
+      resumen: 'Resumen',
+      notas: 'Notas',
+      asistencias: 'Asistencias',
+      alumnos: 'Alumnos',
+      cursos: 'Cursos',
+      mensajes: 'Mensajes',
+      perfil: 'Mi Perfil',
+    };
+    return titles[this.vistaActual];
+  }
+
+  protected get userInitial(): string {
+    const name = this.currentUser?.username ?? this.currentUser?.email ?? '?';
+    return name.charAt(0).toUpperCase();
   }
 
   protected applyFilters(): void {

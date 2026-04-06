@@ -10,11 +10,11 @@
 
 .login-card {
   max-width: 460px;
-  border-radius: 22px;
+  border-radius: 20px;
   border: 1px solid #d9e7ea;
   background: rgba(255, 255, 255, 0.86);
-  padding: 24px;
-  box-shadow: 0 16px 38px rgba(14, 66, 73, 0.08);
+  padding: 26px;
+  box-shadow: 0 22px 40px rgba(14, 66, 73, 0.11);
 }
 
 .eyebrow {
@@ -33,41 +33,17 @@ h2 {
 
 .hint {
   color: #3b4f57;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
-label {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 12px;
-  color: #23424d;
-  font-weight: 600;
+.login-form {
+  gap: 12px;
 }
 
-input {
-  border: 1px solid #cad8dc;
-  border-radius: 12px;
-  padding: 12px;
-  font-size: 1rem;
-  font-family: inherit;
-}
-
-button {
-  margin-top: 8px;
-  border: 0;
-  border-radius: 12px;
-  background: #0f5f5d;
-  color: #f5fcfd;
-  padding: 12px;
-  font-weight: 700;
-  cursor: pointer;
+.login-submit {
+  margin-top: 6px;
+  padding-block: 13px;
   width: 100%;
-}
-
-button:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 .error {

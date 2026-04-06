@@ -6,10 +6,10 @@
       <button type="button" class="close-btn" (click)="onCancel()">✕</button>
     </div>
 
-    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="modal-form">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="modal-form pe-form">
       <div class="form-fields">
         <div class="form-group" *ngFor="let field of fields">
-          <label [for]="field.name">{{ field.label }}</label>
+          <label [for]="field.name" class="pe-label" *ngIf="field.type !== 'checkbox'">{{ field.label }}</label>
 
           <input
             *ngIf="field.type === 'text'"
@@ -17,7 +17,7 @@
             type="text"
             [formControlName]="field.name"
             [placeholder]="field.placeholder || ''"
-            class="form-input"
+            class="pe-control"
           />
 
           <input
@@ -27,7 +27,7 @@
             [formControlName]="field.name"
             [min]="field.min ?? null"
             [max]="field.max ?? null"
-            class="form-input"
+            class="pe-control"
           />
 
           <input
@@ -35,7 +35,7 @@
             [id]="field.name"
             type="date"
             [formControlName]="field.name"
-            class="form-input"
+            class="pe-control"
           />
 
           <textarea
@@ -43,39 +43,39 @@
             [id]="field.name"
             [formControlName]="field.name"
             [placeholder]="field.placeholder || ''"
-            class="form-input"
+            class="pe-control"
             rows="3"
           ></textarea>
 
-          <div *ngIf="field.type === 'checkbox'" class="checkbox-wrapper">
+          <label *ngIf="field.type === 'checkbox'" class="pe-check" [for]="field.name">
             <input
               [id]="field.name"
               type="checkbox"
               [formControlName]="field.name"
               class="form-checkbox"
             />
-            <label [for]="field.name" class="checkbox-label" style="margin-left: 8px">{{ field.label }}</label>
-          </div>
+            <span>{{ field.label }}</span>
+          </label>
 
           <select
             *ngIf="field.type === 'select'"
             [id]="field.name"
             [formControlName]="field.name"
-            class="form-input"
+            class="pe-control"
           >
             <option value="" disabled selected>Selecciona {{ field.label.toLowerCase() }}</option>
             <option *ngFor="let opt of field.options" [value]="opt.value">{{ opt.label }}</option>
           </select>
 
-          <div *ngIf="form.get(field.name)?.invalid && form.get(field.name)?.touched" class="error-message">
+          <div *ngIf="form.get(field.name)?.invalid && form.get(field.name)?.touched" class="pe-error">
             Campo requerido
           </div>
         </div>
       </div>
 
-      <div class="modal-footer">
-        <button type="button" class="btn-cancel" (click)="onCancel()">{{ cancelLabel }}</button>
-        <button type="submit" class="btn-submit" [disabled]="form.invalid">{{ submitLabel }}</button>
+      <div class="modal-footer pe-actions">
+        <button type="button" class="pe-btn pe-btn--ghost" (click)="onCancel()">{{ cancelLabel }}</button>
+        <button type="submit" class="pe-btn pe-btn--primary" [disabled]="form.invalid">{{ submitLabel }}</button>
       </div>
     </form>
   </div>

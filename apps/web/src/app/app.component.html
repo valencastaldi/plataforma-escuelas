@@ -1,21 +1,2 @@
-<main class="shell">
-  <header class="topbar">
-    <div>
-      <p class="brand">Plataforma Escuelas</p>
-      <h1>Frontend de Exploracion</h1>
-    </div>
-
-    <div class="profile-menu" *ngIf="currentUser">
-      <button type="button" class="profile-button" (click)="toggleProfileMenu()">Perfil</button>
-      <div class="profile-popover" *ngIf="showProfileMenu">
-        <p><strong>Rol:</strong> {{ currentUser.role }}</p>
-        <p><strong>Email:</strong> {{ currentUser.email || '-' }}</p>
-        <p><strong>Username:</strong> {{ currentUser.username || '-' }}</p>
-        <button type="button" class="logout-button" (click)="logout()">Cerrar sesion</button>
-      </div>
-    </div>
-  </header>
-
-  <router-outlet></router-outlet>
-  <app-modal></app-modal>
-</main>
+<router-outlet></router-outlet>
+<app-modal></app-modal>

@@ -85,6 +85,44 @@ export type CreateAvisoInput = {
 
 export type UpdateAvisoInput = Partial<CreateAvisoInput>;
 
+export type MensajeAutor = {
+  id: number;
+  username?: string | null;
+  email?: string | null;
+  role: string;
+};
+
+export type MensajeRespuesta = {
+  id: number;
+  contenido: string;
+  soloProfesor: boolean;
+  createdAt: string;
+  autorId: number;
+  autor: MensajeAutor;
+};
+
+export type Mensaje = {
+  id: number;
+  contenido: string;
+  soloProfesor: boolean;
+  createdAt: string;
+  autorId: number;
+  autor: MensajeAutor;
+  cursoId?: number | null;
+  curso?: { id: number; nombre: string } | null;
+  destinatarioId?: number | null;
+  destinatario?: { id: number; username?: string | null; email?: string | null } | null;
+  respuestas: MensajeRespuesta[];
+};
+
+export type CreateMensajeInput = {
+  contenido: string;
+  cursoId?: number;
+  destinatarioId?: number;
+  padreId?: number;
+  soloProfesor?: boolean;
+};
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly apiBase = 'http://localhost:3000';
@@ -158,5 +196,17 @@ export class ApiService {
 
   deleteAviso(id: number): Observable<unknown> {
     return this.http.delete(`${this.apiBase}/avisos/${id}`);
+  }
+
+  getMensajes(): Observable<Mensaje[]> {
+    return this.http.get<Mensaje[]>(`${this.apiBase}/mensajes`);
+  }
+
+  createMensaje(input: CreateMensajeInput): Observable<Mensaje> {
+    return this.http.post<Mensaje>(`${this.apiBase}/mensajes`, input);
+  }
+
+  deleteMensaje(id: number): Observable<unknown> {
+    return this.http.delete(`${this.apiBase}/mensajes/${id}`);
   }
 }
