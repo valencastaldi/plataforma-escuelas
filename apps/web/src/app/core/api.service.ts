@@ -7,12 +7,30 @@ export type Curso = {
   nombre: string;
 };
 
+export type AlumnoUser = {
+  id: number;
+  email?: string | null;
+  username?: string | null;
+};
+
 export type Alumno = {
   id: number;
   nombre: string;
   cursoId: number;
-  userId?: number | null;
+  userId: number;
+  user?: AlumnoUser;
   curso?: Curso;
+};
+
+export type AvisoCategoria = 'INSTITUCIONAL' | 'ADMINISTRATIVO' | 'ACADEMICO';
+
+export type Aviso = {
+  id: number;
+  titulo: string;
+  contenido: string;
+  categoria: AvisoCategoria;
+  publicadoDesde: string;
+  activo: boolean;
 };
 
 export type Nota = {
@@ -56,6 +74,16 @@ export type CreateAsistenciaInput = {
 };
 
 export type UpdateAsistenciaInput = Partial<CreateAsistenciaInput>;
+
+export type CreateAvisoInput = {
+  titulo: string;
+  contenido: string;
+  categoria?: AvisoCategoria;
+  publicadoDesde?: string;
+  activo?: boolean;
+};
+
+export type UpdateAvisoInput = Partial<CreateAvisoInput>;
 
 @Injectable({ providedIn: 'root' })
 export class ApiService {
@@ -114,5 +142,21 @@ export class ApiService {
 
   deleteAsistencia(id: number): Observable<unknown> {
     return this.http.delete(`${this.apiBase}/asistencias/${id}`);
+  }
+
+  getAvisos(): Observable<Aviso[]> {
+    return this.http.get<Aviso[]>(`${this.apiBase}/avisos`);
+  }
+
+  createAviso(input: CreateAvisoInput): Observable<Aviso> {
+    return this.http.post<Aviso>(`${this.apiBase}/avisos`, input);
+  }
+
+  updateAviso(id: number, input: UpdateAvisoInput): Observable<Aviso> {
+    return this.http.patch<Aviso>(`${this.apiBase}/avisos/${id}`, input);
+  }
+
+  deleteAviso(id: number): Observable<unknown> {
+    return this.http.delete(`${this.apiBase}/avisos/${id}`);
   }
 }

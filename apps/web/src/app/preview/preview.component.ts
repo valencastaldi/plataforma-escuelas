@@ -5,17 +5,22 @@ import {
   ApiService,
   Alumno,
   Asistencia,
+  Aviso,
+  AvisoCategoria,
   CreateAsistenciaInput,
+  CreateAvisoInput,
   CreateNotaInput,
   Curso,
   Nota,
   UpdateAsistenciaInput,
+  UpdateAvisoInput,
   UpdateNotaInput,
 } from '../core/api.service';
 import { AuthService, AuthUser, UserRole } from '../core/auth.service';
 import { ModalService, ModalType, FormField } from '../core/modal.service';
 
 type Vista = 'resumen' | 'notas' | 'asistencias' | 'alumnos' | 'cursos';
+type TablaPaginada = 'notas' | 'asistencias' | 'alumnos';
 
 @Component({
   selector: 'app-preview',
@@ -36,11 +41,18 @@ export class PreviewComponent implements OnInit {
   protected errorMessage = '';
   protected selectedNotaId: number | null = null;
   protected selectedAsistenciaId: number | null = null;
+  protected selectedAvisoId: number | null = null;
+
+  private readonly tablePageSize = 8;
+  protected notasPage = 1;
+  protected asistenciasPage = 1;
+  protected alumnosPage = 1;
 
   protected cursos: Curso[] = [];
   protected alumnos: Alumno[] = [];
   protected notas: Nota[] = [];
   protected asistencias: Asistencia[] = [];
+  protected avisos: Aviso[] = [];
 
   constructor(
     private readonly api: ApiService,
@@ -93,30 +105,78 @@ export class PreviewComponent implements OnInit {
   }
 
   protected get notasVisibles(): ReadonlyArray<Nota> {
-    return this.notas;
+    return this.paginate(this.notas, this.notasPage);
   }
 
   protected get asistenciasVisibles(): ReadonlyArray<Asistencia> {
-    return this.asistencias;
+    return this.paginate(this.asistencias, this.asistenciasPage);
   }
 
   protected get alumnosVisibles(): ReadonlyArray<Alumno> {
-    return this.alumnos;
+    return this.paginate(this.alumnos, this.alumnosPage);
+  }
+
+  protected get avisosVisibles(): ReadonlyArray<Aviso> {
+    return this.avisos.slice(0, 3);
   }
 
   protected get resumenStats(): { totalCursos: number; totalAlumnos: number; totalNotas: number; totalAsistencias: number } {
     return {
       totalCursos: this.cursos.length,
-      totalAlumnos: this.alumnosVisibles.length,
-      totalNotas: this.notasVisibles.length,
-      totalAsistencias: this.asistenciasVisibles.length,
+      totalAlumnos: this.alumnos.length,
+      totalNotas: this.notas.length,
+      totalAsistencias: this.asistencias.length,
     };
+  }
+
+  protected userVinculadoLabel(alumno: Alumno): string {
+    if (alumno.user?.email) return alumno.user.email;
+    if (alumno.user?.username) return alumno.user.username;
+    return `Usuario #${alumno.userId}`;
+  }
+
+  protected avisoCategoriaLabel(categoria: AvisoCategoria): string {
+    if (categoria === 'ACADEMICO') return 'Academico';
+    if (categoria === 'ADMINISTRATIVO') return 'Administrativo';
+    return 'Institucional';
+  }
+
+  protected selectAviso(id: number): void {
+    this.selectedAvisoId = id;
+  }
+
+  protected get totalPaginasNotas(): number {
+    return this.getTotalPages(this.notas.length);
+  }
+
+  protected get totalPaginasAsistencias(): number {
+    return this.getTotalPages(this.asistencias.length);
+  }
+
+  protected get totalPaginasAlumnos(): number {
+    return this.getTotalPages(this.alumnos.length);
+  }
+
+  protected canPrev(tabla: TablaPaginada): boolean {
+    return this.getCurrentPage(tabla) > 1;
+  }
+
+  protected canNext(tabla: TablaPaginada): boolean {
+    return this.getCurrentPage(tabla) < this.getMaxPage(tabla);
+  }
+
+  protected previousPage(tabla: TablaPaginada): void {
+    this.setPage(tabla, this.getCurrentPage(tabla) - 1);
+  }
+
+  protected nextPage(tabla: TablaPaginada): void {
+    this.setPage(tabla, this.getCurrentPage(tabla) + 1);
   }
 
   protected cursoNombre(cursoId: number): string {
     const curso = this.cursos.find((c) => c.id === cursoId);
     if (!curso) return 'Sin curso';
-    return /^año\s+\d+$/i.test(curso.nombre.trim()) ? curso.nombre : `Año ${curso.id}`;
+    return curso.nombre?.trim() || `Curso ${curso.id}`;
   }
 
   protected cursoLabel(curso: Curso): string {
@@ -266,7 +326,13 @@ export class PreviewComponent implements OnInit {
 
   protected deleteSelectedNota(): void {
     if (!this.canWrite || !this.selectedNotaId) return;
-    const ok = window.confirm('Deseas eliminar la nota seleccionada?');
+    const nota = this.notas.find((n) => n.id === this.selectedNotaId);
+    if (!nota) return;
+
+    const alumno = this.alumnoNombre(nota.alumnoId);
+    const ok = window.confirm(
+      `Deseas eliminar la nota de ${alumno} (${this.descripcionNota(nota.descripcion)} - ${nota.valor})?`,
+    );
     if (!ok) return;
 
     this.api.deleteNota(this.selectedNotaId).subscribe({
@@ -397,7 +463,13 @@ export class PreviewComponent implements OnInit {
 
   protected deleteSelectedAsistencia(): void {
     if (!this.canWrite || !this.selectedAsistenciaId) return;
-    const ok = window.confirm('Deseas eliminar la asistencia seleccionada?');
+    const asistencia = this.asistencias.find((a) => a.id === this.selectedAsistenciaId);
+    if (!asistencia) return;
+
+    const alumno = this.alumnoNombre(asistencia.alumnoId);
+    const ok = window.confirm(
+      `Deseas eliminar la asistencia de ${alumno} del ${this.fechaCorta(asistencia.fecha)}?`,
+    );
     if (!ok) return;
 
     this.api.deleteAsistencia(this.selectedAsistenciaId).subscribe({
@@ -407,6 +479,172 @@ export class PreviewComponent implements OnInit {
       },
       error: () => {
         this.errorMessage = 'No se pudo eliminar la asistencia';
+      },
+    });
+  }
+
+  protected createAviso(): void {
+    if (!this.canWrite) return;
+
+    const fields: FormField[] = [
+      {
+        name: 'titulo',
+        label: 'Titulo',
+        type: 'text',
+        value: '',
+        required: true,
+        placeholder: 'Ej: Novedad semanal',
+      },
+      {
+        name: 'contenido',
+        label: 'Contenido',
+        type: 'textarea',
+        value: '',
+        required: true,
+      },
+      {
+        name: 'categoria',
+        label: 'Categoria',
+        type: 'select',
+        value: 'INSTITUCIONAL',
+        options: [
+          { label: 'Institucional', value: 'INSTITUCIONAL' },
+          { label: 'Administrativo', value: 'ADMINISTRATIVO' },
+          { label: 'Academico', value: 'ACADEMICO' },
+        ],
+      },
+      {
+        name: 'publicadoDesde',
+        label: 'Publicar desde',
+        type: 'date',
+        value: this.todayDate(),
+      },
+      {
+        name: 'activo',
+        label: 'Activo',
+        type: 'checkbox',
+        value: true,
+      },
+    ];
+
+    this.modal
+      .open({
+        type: ModalType.NOTA_CREATE,
+        title: 'Nuevo Aviso',
+        fields,
+        submitLabel: 'Publicar',
+      })
+      .then((values) => {
+        const payload: CreateAvisoInput = {
+          titulo: values['titulo'],
+          contenido: values['contenido'],
+          categoria: values['categoria'] as AvisoCategoria,
+          publicadoDesde: values['publicadoDesde'],
+          activo: values['activo'] === true,
+        };
+
+        this.api.createAviso(payload).subscribe({
+          next: () => this.loadData(),
+          error: () => {
+            this.errorMessage = 'No se pudo crear el aviso';
+          },
+        });
+      })
+      .catch(() => {
+        // Modal cancelled
+      });
+  }
+
+  protected editSelectedAviso(): void {
+    if (!this.canWrite || !this.selectedAvisoId) return;
+
+    const aviso = this.avisos.find((a) => a.id === this.selectedAvisoId);
+    if (!aviso) return;
+
+    const fields: FormField[] = [
+      {
+        name: 'titulo',
+        label: 'Titulo',
+        type: 'text',
+        value: aviso.titulo,
+        required: true,
+      },
+      {
+        name: 'contenido',
+        label: 'Contenido',
+        type: 'textarea',
+        value: aviso.contenido,
+        required: true,
+      },
+      {
+        name: 'categoria',
+        label: 'Categoria',
+        type: 'select',
+        value: aviso.categoria,
+        options: [
+          { label: 'Institucional', value: 'INSTITUCIONAL' },
+          { label: 'Administrativo', value: 'ADMINISTRATIVO' },
+          { label: 'Academico', value: 'ACADEMICO' },
+        ],
+      },
+      {
+        name: 'publicadoDesde',
+        label: 'Publicar desde',
+        type: 'date',
+        value: aviso.publicadoDesde.slice(0, 10),
+      },
+      {
+        name: 'activo',
+        label: 'Activo',
+        type: 'checkbox',
+        value: aviso.activo,
+      },
+    ];
+
+    this.modal
+      .open({
+        type: ModalType.NOTA_EDIT,
+        title: 'Editar Aviso',
+        fields,
+        submitLabel: 'Actualizar',
+      })
+      .then((values) => {
+        const payload: UpdateAvisoInput = {
+          titulo: values['titulo'],
+          contenido: values['contenido'],
+          categoria: values['categoria'] as AvisoCategoria,
+          publicadoDesde: values['publicadoDesde'],
+          activo: values['activo'] === true,
+        };
+
+        this.api.updateAviso(aviso.id, payload).subscribe({
+          next: () => this.loadData(),
+          error: () => {
+            this.errorMessage = 'No se pudo editar el aviso';
+          },
+        });
+      })
+      .catch(() => {
+        // Modal cancelled
+      });
+  }
+
+  protected deleteSelectedAviso(): void {
+    if (!this.canWrite || !this.selectedAvisoId) return;
+
+    const aviso = this.avisos.find((a) => a.id === this.selectedAvisoId);
+    if (!aviso) return;
+
+    const ok = window.confirm(`Deseas eliminar el aviso "${aviso.titulo}"?`);
+    if (!ok) return;
+
+    this.api.deleteAviso(aviso.id).subscribe({
+      next: () => {
+        this.selectedAvisoId = null;
+        this.loadData();
+      },
+      error: () => {
+        this.errorMessage = 'No se pudo eliminar el aviso';
       },
     });
   }
@@ -423,6 +661,53 @@ export class PreviewComponent implements OnInit {
     return this.alumnos[0];
   }
 
+  private paginate<T>(items: T[], page: number): ReadonlyArray<T> {
+    const start = (page - 1) * this.tablePageSize;
+    return items.slice(start, start + this.tablePageSize);
+  }
+
+  private getTotalPages(totalItems: number): number {
+    return Math.max(1, Math.ceil(totalItems / this.tablePageSize));
+  }
+
+  private getCurrentPage(tabla: TablaPaginada): number {
+    if (tabla === 'notas') return this.notasPage;
+    if (tabla === 'asistencias') return this.asistenciasPage;
+    return this.alumnosPage;
+  }
+
+  private getMaxPage(tabla: TablaPaginada): number {
+    if (tabla === 'notas') return this.totalPaginasNotas;
+    if (tabla === 'asistencias') return this.totalPaginasAsistencias;
+    return this.totalPaginasAlumnos;
+  }
+
+  private setPage(tabla: TablaPaginada, page: number): void {
+    const clamped = Math.min(Math.max(1, page), this.getMaxPage(tabla));
+
+    if (tabla === 'notas') {
+      this.notasPage = clamped;
+      return;
+    }
+
+    if (tabla === 'asistencias') {
+      this.asistenciasPage = clamped;
+      return;
+    }
+
+    this.alumnosPage = clamped;
+  }
+
+  private syncPages(): void {
+    this.notasPage = Math.min(this.notasPage, this.totalPaginasNotas);
+    this.asistenciasPage = Math.min(this.asistenciasPage, this.totalPaginasAsistencias);
+    this.alumnosPage = Math.min(this.alumnosPage, this.totalPaginasAlumnos);
+
+    this.notasPage = Math.max(1, this.notasPage);
+    this.asistenciasPage = Math.max(1, this.asistenciasPage);
+    this.alumnosPage = Math.max(1, this.alumnosPage);
+  }
+
   private loadData(): void {
     this.loading = true;
     this.errorMessage = '';
@@ -436,9 +721,11 @@ export class PreviewComponent implements OnInit {
       alumnos: this.api.getAlumnos(this.role === 'DOCENTE' ? this.filtroCursoId : null),
       notas: this.api.getNotas(filters),
       asistencias: this.api.getAsistencias(filters),
+      avisos: this.api.getAvisos(),
     }).subscribe({
       next: (res) => {
         this.cursos = res.cursos;
+        this.avisos = res.avisos;
 
         if (this.role === 'ALUMNO' && this.currentUser?.id) {
           const own = res.alumnos.find((a) => a.userId === this.currentUser?.id);
@@ -463,6 +750,11 @@ export class PreviewComponent implements OnInit {
         this.selectedAsistenciaId = this.asistencias.some((a) => a.id === this.selectedAsistenciaId)
           ? this.selectedAsistenciaId
           : null;
+        this.selectedAvisoId = this.avisos.some((a) => a.id === this.selectedAvisoId)
+          ? this.selectedAvisoId
+          : null;
+
+        this.syncPages();
 
         this.loading = false;
       },

@@ -13,6 +13,7 @@ export class LoginComponent {
   protected password = '';
   protected loading = false;
   protected errorMessage = '';
+  protected readonly showDemoCredentials = this.isLocalhost();
 
   constructor(
     private readonly authService: AuthService,
@@ -39,5 +40,10 @@ export class LoginComponent {
           this.errorMessage = 'Credenciales inválidas';
         },
       });
+  }
+
+  private isLocalhost(): boolean {
+    const host = window.location.hostname;
+    return host === 'localhost' || host === '127.0.0.1';
   }
 }

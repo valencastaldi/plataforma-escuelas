@@ -48,6 +48,33 @@ h1 {
   background: rgba(255, 255, 255, 0.62);
   border-radius: 14px;
   padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color 180ms ease, transform 180ms ease;
+}
+
+.news-grid article:hover {
+  border-color: #8eb6bf;
+  transform: translateY(-1px);
+}
+
+.news-grid article.aviso-selected {
+  border-color: #2f7c8f;
+  box-shadow: 0 0 0 2px rgba(47, 124, 143, 0.14);
+}
+
+.chip {
+  display: inline-block;
+  margin: 0 0 8px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: #dbeff4;
+  color: #1d4f5b;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.empty-news {
+  cursor: default;
 }
 
 .news-grid h3 {
@@ -188,6 +215,16 @@ input {
   cursor: not-allowed;
 }
 
+.table-tip {
+  margin: 0 0 10px;
+  color: #49626b;
+  font-size: 0.9rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -210,6 +247,18 @@ tbody tr:hover {
 
 .row-selected {
   background: #d9edf4;
+}
+
+.pager {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pager span {
+  color: #28464f;
+  font-size: 0.92rem;
 }
 
 th {

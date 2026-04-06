@@ -20,7 +20,7 @@
 
     <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
 
-    <div class="demo-box">
+    <div class="demo-box" *ngIf="showDemoCredentials">
       <p>Demo docente (seed):</p>
       <strong>docente@escuelas.local / Docente123!</strong>
     </div>

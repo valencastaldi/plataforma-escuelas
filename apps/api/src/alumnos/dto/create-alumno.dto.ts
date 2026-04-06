@@ -8,4 +8,8 @@ export class CreateAlumnoDto {
   @IsInt()
   @Min(1)
   cursoId!: number;
+
+  @IsInt()
+  @Min(1)
+  userId!: number;
 }

@@ -9,4 +9,9 @@ export class UpdateAlumnoDto {
   @Min(1)
   @IsOptional()
   cursoId?: number;
+
+  @IsInt()
+  @Min(1)
+  @IsOptional()
+  userId?: number;
 }

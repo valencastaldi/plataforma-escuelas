@@ -7,9 +7,10 @@ import { AlumnosModule } from './alumnos/alumnos.module';
 import { AuthModule } from './auth/auth.module';
 import { NotasModule } from './notas/notas.module';
 import { AsistenciasModule } from './asistencias/asistencias.module';
+import { AvisosModule } from './avisos/avisos.module';
 
 @Module({
-  imports: [PrismaModule, CursosModule, AlumnosModule, AuthModule, NotasModule, AsistenciasModule],
+  imports: [PrismaModule, CursosModule, AlumnosModule, AuthModule, NotasModule, AsistenciasModule, AvisosModule],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -3,20 +3,28 @@
     <p class="eyebrow">Plataforma Escuelas</p>
     <h1>Panel de Academia de Ingles</h1>
     <p class="subtitle">
-      Sesion real conectada al backend. Aqui puedes ver un ejemplo de novedades y avisos institucionales.
+      Sesion real conectada al backend. Aqui puedes ver novedades y avisos institucionales en vivo.
     </p>
+
+    <div class="actions" *ngIf="canWrite">
+      <button type="button" (click)="createAviso()">Nuevo aviso</button>
+      <button type="button" [disabled]="!selectedAvisoId" (click)="editSelectedAviso()">Editar aviso</button>
+      <button type="button" [disabled]="!selectedAvisoId" (click)="deleteSelectedAviso()">Eliminar aviso</button>
+    </div>
+
     <div class="news-grid">
-      <article>
-        <h3>Novedad semanal</h3>
-        <p>Este viernes hay club de conversacion de 18:00 a 19:30 para niveles intermedio y avanzado.</p>
+      <article
+        *ngFor="let aviso of avisosVisibles"
+        (click)="selectAviso(aviso.id)"
+        [class.aviso-selected]="selectedAvisoId === aviso.id"
+      >
+        <p class="chip">{{ avisoCategoriaLabel(aviso.categoria) }}</p>
+        <h3>{{ aviso.titulo }}</h3>
+        <p>{{ aviso.contenido }}</p>
       </article>
-      <article>
-        <h3>Aviso administrativo</h3>
-        <p>Recordatorio: la cuota de abril vence el dia 10. Puedes pagar en recepcion o por transferencia.</p>
-      </article>
-      <article>
-        <h3>Proximos examenes</h3>
-        <p>Mock exam interno: sabado 27. Inscripcion abierta hasta el martes 23.</p>
+      <article *ngIf="!avisosVisibles.length" class="empty-news">
+        <h3>Sin avisos</h3>
+        <p>No hay avisos activos para mostrar.</p>
       </article>
     </div>
   </header>
@@ -89,26 +97,34 @@
       <button type="button" [disabled]="!canWrite || !selectedNotaId" (click)="editSelectedNota()">Editar seleccionada</button>
       <button type="button" [disabled]="!canWrite || !selectedNotaId" (click)="deleteSelectedNota()">Eliminar seleccionada</button>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Alumno</th>
-          <th>Curso</th>
-          <th>Descripcion</th>
-          <th>Valor</th>
-          <th>Fecha</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let n of notasVisibles" (click)="selectNota(n.id)" [class.row-selected]="selectedNotaId === n.id">
-          <td>{{ alumnoNombre(n.alumnoId) }}</td>
-          <td>{{ cursoNombre(n.cursoId) }}</td>
-          <td>{{ descripcionNota(n.descripcion) }}</td>
-          <td>{{ n.valor }}</td>
-          <td>{{ fechaCorta(n.fecha) }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <p class="table-tip" *ngIf="canWrite && !selectedNotaId">Selecciona una fila para editar o eliminar.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Alumno</th>
+            <th>Curso</th>
+            <th>Descripcion</th>
+            <th>Valor</th>
+            <th>Fecha</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let n of notasVisibles" (click)="selectNota(n.id)" [class.row-selected]="selectedNotaId === n.id">
+            <td>{{ alumnoNombre(n.alumnoId) }}</td>
+            <td>{{ cursoNombre(n.cursoId) }}</td>
+            <td>{{ descripcionNota(n.descripcion) }}</td>
+            <td>{{ n.valor }}</td>
+            <td>{{ fechaCorta(n.fecha) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pager" *ngIf="totalPaginasNotas > 1">
+      <button type="button" (click)="previousPage('notas')" [disabled]="!canPrev('notas')">Anterior</button>
+      <span>Pagina {{ notasPage }} de {{ totalPaginasNotas }}</span>
+      <button type="button" (click)="nextPage('notas')" [disabled]="!canNext('notas')">Siguiente</button>
+    </div>
   </section>
 
   <section *ngIf="!loading && !errorMessage && vistaActual === 'asistencias'" class="panel">
@@ -118,50 +134,65 @@
       <button type="button" [disabled]="!canWrite || !selectedAsistenciaId" (click)="editSelectedAsistencia()">Editar seleccionada</button>
       <button type="button" [disabled]="!canWrite || !selectedAsistenciaId" (click)="deleteSelectedAsistencia()">Eliminar seleccionada</button>
     </div>
-    <table>
-      <thead>
-        <tr>
-          <th>Alumno</th>
-          <th>Curso</th>
-          <th>Fecha</th>
-          <th>Estado</th>
-          <th>Observacion</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let a of asistenciasVisibles" (click)="selectAsistencia(a.id)" [class.row-selected]="selectedAsistenciaId === a.id">
-          <td>{{ alumnoNombre(a.alumnoId) }}</td>
-          <td>{{ cursoNombre(a.cursoId) }}</td>
-          <td>{{ fechaCorta(a.fecha) }}</td>
-          <td>
-            <span [class.ok]="a.presente" [class.bad]="!a.presente">
-              {{ a.presente ? 'Presente' : 'Ausente' }}
-            </span>
-          </td>
-          <td>{{ a.observacion || '-' }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <p class="table-tip" *ngIf="canWrite && !selectedAsistenciaId">Selecciona una fila para editar o eliminar.</p>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Alumno</th>
+            <th>Curso</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th>Observacion</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of asistenciasVisibles" (click)="selectAsistencia(a.id)" [class.row-selected]="selectedAsistenciaId === a.id">
+            <td>{{ alumnoNombre(a.alumnoId) }}</td>
+            <td>{{ cursoNombre(a.cursoId) }}</td>
+            <td>{{ fechaCorta(a.fecha) }}</td>
+            <td>
+              <span [class.ok]="a.presente" [class.bad]="!a.presente">
+                {{ a.presente ? 'Presente' : 'Ausente' }}
+              </span>
+            </td>
+            <td>{{ a.observacion || '-' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pager" *ngIf="totalPaginasAsistencias > 1">
+      <button type="button" (click)="previousPage('asistencias')" [disabled]="!canPrev('asistencias')">Anterior</button>
+      <span>Pagina {{ asistenciasPage }} de {{ totalPaginasAsistencias }}</span>
+      <button type="button" (click)="nextPage('asistencias')" [disabled]="!canNext('asistencias')">Siguiente</button>
+    </div>
   </section>
 
   <section *ngIf="!loading && !errorMessage && vistaActual === 'alumnos'" class="panel">
     <h2>Alumnos</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Nombre</th>
-          <th>Curso</th>
-          <th>User vinculado</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let a of alumnosVisibles">
-          <td>{{ a.nombre }}</td>
-          <td>{{ cursoNombre(a.cursoId) }}</td>
-          <td>{{ a.userId }}</td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Curso</th>
+            <th>User vinculado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of alumnosVisibles">
+            <td>{{ a.nombre }}</td>
+            <td>{{ cursoNombre(a.cursoId) }}</td>
+            <td>{{ userVinculadoLabel(a) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="pager" *ngIf="totalPaginasAlumnos > 1">
+      <button type="button" (click)="previousPage('alumnos')" [disabled]="!canPrev('alumnos')">Anterior</button>
+      <span>Pagina {{ alumnosPage }} de {{ totalPaginasAlumnos }}</span>
+      <button type="button" (click)="nextPage('alumnos')" [disabled]="!canNext('alumnos')">Siguiente</button>
+    </div>
   </section>
 
   <section *ngIf="!loading && !errorMessage && vistaActual === 'cursos'" class="panel">
