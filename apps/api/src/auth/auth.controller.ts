@@ -28,6 +28,14 @@ export class AuthController {
   }
 
   @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.DOCENTE)
+  @Get('users')
+  getUsers() {
+    return this.authService.getUsers();
+  }
+
+  @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
   @Get('me')
   me(@Req() req: { user: AuthUser }) {

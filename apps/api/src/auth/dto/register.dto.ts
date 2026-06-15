@@ -1,5 +1,5 @@
 import { Role } from '@prisma/client';
-import { IsEmail, IsEnum, IsInt, IsOptional, IsString, Min, MinLength, ValidateIf } from 'class-validator';
+import { IsDateString, IsEmail, IsEnum, IsInt, IsOptional, IsString, Min, MinLength, ValidateIf } from 'class-validator';
 
 export class RegisterDto {
   @IsOptional()
@@ -19,6 +19,7 @@ export class RegisterDto {
   @IsEnum(Role)
   role?: Role;
 
+  // Campos de alumno
   @ValidateIf((o: RegisterDto) => (o.role ?? Role.ALUMNO) === Role.ALUMNO)
   @IsString()
   @MinLength(2)
@@ -28,4 +29,17 @@ export class RegisterDto {
   @IsInt()
   @Min(1)
   cursoId?: number;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  apellido?: string;
+
+  @IsOptional()
+  @IsString()
+  dni?: string;
+
+  @IsOptional()
+  @IsDateString()
+  fechaNacimiento?: string;
 }

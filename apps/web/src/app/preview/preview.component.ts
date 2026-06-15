@@ -14,14 +14,16 @@ import {
   Curso,
   Mensaje,
   Nota,
+  RegisterInput,
   UpdateAsistenciaInput,
   UpdateAvisoInput,
   UpdateNotaInput,
+  UsuarioListItem,
 } from '../core/api.service';
 import { AuthService, AuthUser, UserRole } from '../core/auth.service';
 import { FormField, ModalService, ModalType } from '../core/modal.service';
 
-type Vista = 'resumen' | 'notas' | 'asistencias' | 'alumnos' | 'cursos' | 'mensajes' | 'perfil';
+type Vista = 'resumen' | 'notas' | 'asistencias' | 'alumnos' | 'cursos' | 'mensajes' | 'usuarios' | 'perfil';
 type TablaPaginada = 'notas' | 'asistencias' | 'alumnos';
 
 @Component({
@@ -30,13 +32,14 @@ type TablaPaginada = 'notas' | 'asistencias' | 'alumnos';
   styleUrls: ['./preview.component.scss'],
 })
 export class PreviewComponent implements OnInit {
-  protected readonly navItems: ReadonlyArray<{ id: Vista; label: string }> = [
+  protected readonly navItems: ReadonlyArray<{ id: Vista; label: string; soloDocente?: boolean }> = [
     { id: 'resumen',     label: 'Resumen' },
     { id: 'notas',       label: 'Notas' },
     { id: 'asistencias', label: 'Asistencias' },
     { id: 'alumnos',     label: 'Alumnos' },
     { id: 'cursos',      label: 'Cursos' },
     { id: 'mensajes',    label: 'Mensajes' },
+    { id: 'usuarios',    label: 'Usuarios', soloDocente: true },
     { id: 'perfil',      label: 'Perfil' },
   ];
   protected vistaActual: Vista = 'resumen';
@@ -71,6 +74,10 @@ export class PreviewComponent implements OnInit {
   protected replyText = '';
   protected replySoloProfesor = false;
 
+  protected usuarios: UsuarioListItem[] = [];
+  protected usuariosLoading = false;
+  protected usuariosError = '';
+
   constructor(
     private readonly api: ApiService,
     private readonly authService: AuthService,
@@ -97,6 +104,131 @@ export class PreviewComponent implements OnInit {
     if (vista === 'mensajes') {
       this.loadMensajes();
     }
+    if (vista === 'usuarios') {
+      this.loadUsuarios();
+    }
+  }
+
+  protected loadUsuarios(): void {
+    this.usuariosLoading = true;
+    this.usuariosError = '';
+    this.api.getUsers().subscribe({
+      next: (users) => {
+        this.usuarios = users;
+        this.usuariosLoading = false;
+      },
+      error: () => {
+        this.usuariosError = 'No se pudieron cargar los usuarios.';
+        this.usuariosLoading = false;
+      },
+    });
+  }
+
+  protected crearUsuario(): void {
+    if (!this.canWrite) return;
+
+    const cursoOptions = this.cursos.map((c) => ({
+      label: c.nombre,
+      value: String(c.id),
+    }));
+
+    const fields: FormField[] = [
+      {
+        name: 'nombre',
+        label: 'Nombre',
+        type: 'text',
+        value: '',
+        required: true,
+        placeholder: 'Ej: Juan',
+      },
+      {
+        name: 'apellido',
+        label: 'Apellido',
+        type: 'text',
+        value: '',
+        placeholder: 'Ej: Perez',
+      },
+      {
+        name: 'dni',
+        label: 'DNI',
+        type: 'text',
+        value: '',
+        placeholder: 'Ej: 40123456',
+      },
+      {
+        name: 'fechaNacimiento',
+        label: 'Fecha de nacimiento',
+        type: 'date',
+        value: '',
+      },
+      {
+        name: 'cursoId',
+        label: 'Curso',
+        type: 'select',
+        value: cursoOptions[0]?.value ?? '',
+        options: cursoOptions,
+        required: true,
+      },
+      {
+        name: 'username',
+        label: 'Usuario (para login)',
+        type: 'text',
+        value: '',
+        required: true,
+        placeholder: 'Ej: juan.perez',
+      },
+      {
+        name: 'password',
+        label: 'Contraseña',
+        type: 'text',
+        value: '',
+        required: true,
+        placeholder: 'Minimo 6 caracteres',
+      },
+    ];
+
+    this.modal
+      .open({
+        type: ModalType.USUARIO_CREATE,
+        title: 'Nuevo Alumno',
+        fields,
+        submitLabel: 'Crear usuario',
+      })
+      .then((values) => {
+        const payload: RegisterInput = {
+          nombre: values['nombre'],
+          apellido: values['apellido'] || undefined,
+          dni: values['dni'] || undefined,
+          fechaNacimiento: values['fechaNacimiento'] || undefined,
+          cursoId: Number(values['cursoId']),
+          username: values['username'],
+          password: values['password'],
+          role: 'ALUMNO',
+        };
+
+        this.api.registerUser(payload).subscribe({
+          next: () => {
+            this.loadUsuarios();
+            this.loadData();
+          },
+          error: (err) => {
+            this.usuariosError = err?.error?.message ?? 'No se pudo crear el usuario.';
+          },
+        });
+      })
+      .catch(() => {});
+  }
+
+  protected usuarioNombreCompleto(u: UsuarioListItem): string {
+    if (!u.alumno) return u.username ?? u.email ?? `Usuario #${u.id}`;
+    const nombre = u.alumno.nombre;
+    const apellido = u.alumno.apellido ? ` ${u.alumno.apellido}` : '';
+    return `${nombre}${apellido}`;
+  }
+
+  protected usuarioFechaNac(u: UsuarioListItem): string {
+    const fecha = u.alumno?.fechaNacimiento;
+    return fecha ? this.fechaCorta(fecha) : '—';
   }
 
   protected loadMensajes(): void {
@@ -231,6 +363,7 @@ export class PreviewComponent implements OnInit {
       alumnos: 'Alumnos',
       cursos: 'Cursos',
       mensajes: 'Mensajes',
+      usuarios: 'Gestión de Usuarios',
       perfil: 'Mi Perfil',
     };
     return titles[this.vistaActual];

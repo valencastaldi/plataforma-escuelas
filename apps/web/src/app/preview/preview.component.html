@@ -8,15 +8,17 @@
     </div>
 
     <nav class="sidebar-nav">
-      <button
-        *ngFor="let item of navItems"
-        type="button"
-        class="nav-item"
-        [class.active]="vistaActual === item.id"
-        (click)="setVista(item.id)"
-      >
-        {{ item.label }}
-      </button>
+      <ng-container *ngFor="let item of navItems">
+        <button
+          *ngIf="!item.soloDocente || role === 'DOCENTE'"
+          type="button"
+          class="nav-item"
+          [class.active]="vistaActual === item.id"
+          (click)="setVista(item.id)"
+        >
+          {{ item.label }}
+        </button>
+      </ng-container>
     </nav>
 
     <div class="sidebar-footer" *ngIf="currentUser">
@@ -37,7 +39,7 @@
     <header class="main-header">
       <h1 class="section-title">{{ vistaTitle }}</h1>
 
-      <div class="header-filters" *ngIf="vistaActual !== 'mensajes' && vistaActual !== 'perfil'">
+      <div class="header-filters" *ngIf="vistaActual !== 'mensajes' && vistaActual !== 'perfil' && vistaActual !== 'usuarios'">
         <label class="filter-field" *ngIf="role === 'ALUMNO' && selectedAlumnoId">
           <span class="pe-label">Alumno</span>
           <input class="pe-control" type="text" [value]="alumnoNombre(selectedAlumnoId)" readonly />
@@ -291,6 +293,46 @@
               {{ expandedMensajeId === m.id ? 'Cerrar ▲' : (m.respuestas.length > 0 ? 'Ver respuestas ▼' : 'Responder ▼') }}
             </button>
           </div>
+        </div>
+      </section>
+
+      <!-- USUARIOS -->
+      <section class="panel" *ngIf="vistaActual === 'usuarios' && role === 'DOCENTE'">
+        <div class="section-toolbar">
+          <button type="button" class="btn-primary" (click)="crearUsuario()">+ Nuevo alumno</button>
+        </div>
+
+        <div class="state-panel" *ngIf="usuariosLoading">Cargando usuarios...</div>
+        <div class="state-panel error" *ngIf="usuariosError">{{ usuariosError }}</div>
+
+        <div class="table-wrap" *ngIf="!usuariosLoading && !usuariosError">
+          <table>
+            <thead>
+              <tr>
+                <th>Nombre completo</th>
+                <th>DNI</th>
+                <th>Curso</th>
+                <th>Usuario</th>
+                <th>Rol</th>
+                <th>Fecha nac.</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let u of usuarios">
+                <td>{{ usuarioNombreCompleto(u) }}</td>
+                <td>{{ u.alumno?.dni ?? '—' }}</td>
+                <td>{{ u.alumno?.curso?.nombre ?? '—' }}</td>
+                <td>{{ u.username ?? u.email ?? '—' }}</td>
+                <td>
+                  <span class="badge" [class.badge-docente]="u.role === 'DOCENTE'">{{ u.role }}</span>
+                </td>
+                <td>{{ usuarioFechaNac(u) }}</td>
+              </tr>
+              <tr *ngIf="usuarios.length === 0">
+                <td colspan="6" class="empty-row">No hay usuarios registrados.</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 

@@ -35,6 +35,11 @@ export class AuthService {
       if (existingByUsername) throw new BadRequestException('Username ya registrado');
     }
 
+    if (dto.dni) {
+      const existingByDni = await this.prisma.alumno.findUnique({ where: { dni: dto.dni } });
+      if (existingByDni) throw new BadRequestException('DNI ya registrado');
+    }
+
     if (role === Role.ALUMNO) {
       const curso = await this.prisma.curso.findUnique({ where: { id: dto.cursoId } });
       if (!curso) throw new BadRequestException('cursoId inválido');
@@ -56,12 +61,11 @@ export class AuthService {
         await tx.alumno.create({
           data: {
             nombre: dto.nombre!,
-            curso: {
-              connect: { id: dto.cursoId! },
-            },
-            user: {
-              connect: { id: createdUser.id },
-            },
+            apellido: dto.apellido,
+            dni: dto.dni,
+            fechaNacimiento: dto.fechaNacimiento ? new Date(dto.fechaNacimiento) : undefined,
+            curso: { connect: { id: dto.cursoId! } },
+            user: { connect: { id: createdUser.id } },
           },
         });
       }
@@ -76,6 +80,31 @@ export class AuthService {
       role: user.role,
       createdAt: user.createdAt,
     };
+  }
+
+  async getUsers() {
+    const users = await this.prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        role: true,
+        createdAt: true,
+        alumno: {
+          select: {
+            id: true,
+            nombre: true,
+            apellido: true,
+            dni: true,
+            fechaNacimiento: true,
+            cursoId: true,
+            curso: { select: { id: true, nombre: true } },
+          },
+        },
+      },
+    });
+    return users;
   }
 
   async login(dto: LoginDto) {

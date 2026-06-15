@@ -7,6 +7,7 @@ export enum ModalType {
   ASISTENCIA_CREATE = 'asistencia_create',
   ASISTENCIA_EDIT = 'asistencia_edit',
   MENSAJE_CREATE = 'mensaje_create',
+  USUARIO_CREATE = 'usuario_create',
 }
 
 export interface ModalConfig {

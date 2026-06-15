@@ -123,6 +123,35 @@ export type CreateMensajeInput = {
   soloProfesor?: boolean;
 };
 
+export type RegisterInput = {
+  username?: string;
+  email?: string;
+  password: string;
+  role?: 'ALUMNO' | 'DOCENTE';
+  nombre?: string;
+  apellido?: string;
+  dni?: string;
+  fechaNacimiento?: string;
+  cursoId?: number;
+};
+
+export type UsuarioListItem = {
+  id: number;
+  email?: string | null;
+  username?: string | null;
+  role: 'ALUMNO' | 'DOCENTE';
+  createdAt: string;
+  alumno?: {
+    id: number;
+    nombre: string;
+    apellido?: string | null;
+    dni?: string | null;
+    fechaNacimiento?: string | null;
+    cursoId: number;
+    curso?: Curso;
+  } | null;
+};
+
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private readonly apiBase = 'http://localhost:3000';
@@ -208,5 +237,13 @@ export class ApiService {
 
   deleteMensaje(id: number): Observable<unknown> {
     return this.http.delete(`${this.apiBase}/mensajes/${id}`);
+  }
+
+  getUsers(): Observable<UsuarioListItem[]> {
+    return this.http.get<UsuarioListItem[]>(`${this.apiBase}/auth/users`);
+  }
+
+  registerUser(input: RegisterInput): Observable<UsuarioListItem> {
+    return this.http.post<UsuarioListItem>(`${this.apiBase}/auth/register`, input);
   }
 }

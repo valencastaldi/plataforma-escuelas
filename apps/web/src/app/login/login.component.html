@@ -1,44 +1,79 @@
-<section class="login-shell">
-  <article class="login-card">
-    <p class="eyebrow">Plataforma Escuelas</p>
-    <h2>Iniciar sesion</h2>
-    <p class="hint">Entrá como ALUMNO para ver solo tus datos o como DOCENTE para ver y gestionar todo.</p>
+<div class="login-shell">
 
-    <form class="pe-form login-form" (ngSubmit)="submit()">
-      <label class="pe-field">
-        <span class="pe-label">Usuario o email</span>
-        <input
-          class="pe-control"
-          type="text"
-          [(ngModel)]="identifier"
-          name="identifier"
-          autocomplete="username"
-          placeholder="docente o docente@escuelas.local"
-        />
-      </label>
-
-      <label class="pe-field">
-        <span class="pe-label">Contraseña</span>
-        <input
-          class="pe-control"
-          type="password"
-          [(ngModel)]="password"
-          name="password"
-          autocomplete="current-password"
-          placeholder="********"
-        />
-      </label>
-
-      <button type="submit" class="pe-btn pe-btn--primary login-submit" [disabled]="loading">
-        {{ loading ? 'Ingresando...' : 'Entrar' }}
-      </button>
-    </form>
-
-    <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
-
-    <div class="demo-box" *ngIf="showDemoCredentials">
-      <p>Demo docente (seed):</p>
-      <strong>docente@escuelas.local / Docente123!</strong>
+  <!-- Panel izquierdo decorativo -->
+  <div class="login-side login-side--brand">
+    <div class="brand-content">
+      <div class="brand-logo">
+        <span class="brand-icon">&#127979;</span>
+      </div>
+      <h1 class="brand-title">Plataforma<br>Escuelas</h1>
+      <p class="brand-desc">Gestioná notas, asistencias y comunicaciones de tu institución desde un solo lugar.</p>
+      <div class="brand-features">
+        <div class="feature-item">
+          <span class="feature-dot"></span>
+          <span>Notas y asistencias en tiempo real</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-dot"></span>
+          <span>Comunicación directa con alumnos</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-dot"></span>
+          <span>Gestión de cursos y usuarios</span>
+        </div>
+      </div>
     </div>
-  </article>
-</section>
+  </div>
+
+  <!-- Panel derecho con el form -->
+  <div class="login-side login-side--form">
+    <div class="login-card">
+
+      <div class="card-header">
+        <p class="eyebrow">Bienvenido</p>
+        <h2>Iniciar sesion</h2>
+        <p class="hint">Ingresá con tu usuario o email para continuar.</p>
+      </div>
+
+      <form class="pe-form login-form" (ngSubmit)="submit()">
+        <label class="pe-field">
+          <span class="pe-label">Usuario o email</span>
+          <input
+            class="pe-control"
+            type="text"
+            [(ngModel)]="identifier"
+            name="identifier"
+            autocomplete="username"
+            placeholder="ej: docente@escuelas.local"
+          />
+        </label>
+
+        <label class="pe-field">
+          <span class="pe-label">Contraseña</span>
+          <input
+            class="pe-control"
+            type="password"
+            [(ngModel)]="password"
+            name="password"
+            autocomplete="current-password"
+            placeholder="Tu contraseña"
+          />
+        </label>
+
+        <p class="error" *ngIf="errorMessage">{{ errorMessage }}</p>
+
+        <button type="submit" class="login-submit" [disabled]="loading">
+          <span *ngIf="!loading">Entrar</span>
+          <span *ngIf="loading" class="loading-dots">Ingresando<span>...</span></span>
+        </button>
+      </form>
+
+      <div class="demo-box" *ngIf="showDemoCredentials">
+        <span class="demo-label">Demo</span>
+        <code>docente@escuelas.local / Docente123!</code>
+      </div>
+
+    </div>
+  </div>
+
+</div>
